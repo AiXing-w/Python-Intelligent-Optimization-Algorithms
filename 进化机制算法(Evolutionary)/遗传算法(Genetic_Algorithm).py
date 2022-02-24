@@ -8,7 +8,7 @@ from PIL import ImageDraw
 import os
 
 class Genetic_Algorithm:
-    def __init__(self, imgPath, saveName="temp", top=5, maxgroup=100, features=100, epochs=1000):
+    def __init__(self, imgPath, saveName="temp", top=5, maxgroup=200, features=100, epochs=1000):
         self.orignal_img, self.type, self.row, self.col = self.OpenImg(imgPath)
         self.max_group = maxgroup
         self.top = top
@@ -16,6 +16,7 @@ class Genetic_Algorithm:
         self.groups = []
         self.features = features
         self.epochs = epochs
+        self.group_dict = dict()
 
         if not os.path.exists(saveName):
             os.mkdir(saveName)
@@ -35,7 +36,7 @@ class Genetic_Algorithm:
 
     def OpenImg(self, imgPath):
         img = imread(imgPath)
-        print(type(img))
+        # print(type(img))
         row, col = img.shape[0], img.shape[1]
         return img, imgPath.split(".")[-1], row, col
 
@@ -52,14 +53,6 @@ class Genetic_Algorithm:
         return newIm1
 
     def getSimilar(self, g) -> float:
-        # array = np.ndarray((self.orignal_img.shape[0], self.orignal_img.shape[1], self.orignal_img.shape[2]), np.uint8)
-        # array[:, :, 0] = 255
-        # array[:, :, 1] = 255
-        # array[:, :, 2] = 255
-        # newIm1 = Image.fromarray(array)
-        # draw = ImageDraw.Draw(newIm1)
-        # for d in g:
-        #     draw.polygon((d[0][0], d[0][1], d[1][0], d[1][1], d[2][0], d[2][1]), d[3])
         newIm1 = self.to_image(g)
         ssim = structural_similarity(np.array(self.orignal_img), np.array(newIm1), multichannel=True)
         return ssim
@@ -72,7 +65,7 @@ class Genetic_Algorithm:
         # 交换
         # 随机生成互换个数
         min_locate = min(len(father), len(mother))
-        n = randint(0, int(random() * min_locate))
+        n = randint(0, int(randint(25, 100) / 100 * min_locate))
         # 随机选出多个位置
         selected = sample(range(0, min_locate), n)
         # 交换内部
@@ -97,7 +90,8 @@ class Genetic_Algorithm:
     def mutation(self, gen):
         # 突变
         # 随机生成变异个数
-        n = randint(0, int(random() * len(gen)))
+        n = int(randint(1, 100) / 1000 * len(gen))
+
         selected = sample(range(0, len(gen)), n)
 
         for s in selected:
@@ -110,7 +104,7 @@ class Genetic_Algorithm:
 
     def move(self, gen):
         # 易位
-        exchage = randint(0, self.features)
+        exchage = int(randint(1, 100) / 1000 * len(gen))
         for e in range(exchage):
             sec1 = randint(0, len(gen) - 1)
             sec2 = randint(0, len(gen) - 1)
@@ -121,7 +115,7 @@ class Genetic_Algorithm:
 
     def add(self, gen):
         # 增加
-        n = randint(0, int(self.features * random()))
+        n = int(randint(1, 100) / 1000 * len(gen))
 
         for s in range(n):
             tmp = [
@@ -135,7 +129,7 @@ class Genetic_Algorithm:
 
     def cut(self, gen):
         # 减少
-        n = randint(0, int(random() * len(gen)))
+        n = int(randint(1, 100) / 1000 * len(gen))
         selected = sample(range(0, len(gen)), n)
 
         g = []
@@ -164,30 +158,33 @@ class Genetic_Algorithm:
         return [new1, new2, new3, new4, new5, new6, new7, new8, new9, new10]
 
     def eliminated(self, groups):
-        group_dict = dict()
+        self.group_dict = dict()
         # print(0, self.getSimilar(groups[0]))
         for gp in range(len(groups)):
-            group_dict[gp] = self.getSimilar(groups[gp])
+            self.group_dict[gp] = self.getSimilar(groups[gp])
         # print(1, self.getSimilar(groups[0]))
         # print(1, groups[0])
-        group_dict = {key: value for key, value in
-                           sorted(group_dict.items(), key=lambda item: item[1], reverse=True)}
+        self.group_dict = {key: value for key, value in
+                           sorted(self.group_dict.items(), key=lambda item: item[1], reverse=True)}
 
         g = []
-        for key in list(group_dict.keys())[:self.max_group]:
-            g.append(groups[key].copy())
+        for key in list(self.group_dict.keys())[:self.max_group]:
+            g.append(self.groups[key].copy())
 
         groups = g.copy()
-        return groups, list(group_dict.values())[0]
+        return groups, list(self.group_dict.values())[0]
 
     def fit(self):
+        self.eliminated(self.groups)
         for cur in range(self.epochs):
             # 繁殖过程
-            breed_n = randint(int(self.max_group // 2), self.max_group)
+            breed_n = randint(self.max_group // 2, self.max_group)
+            g_f = np.abs(np.array(list(self.group_dict.values())))
+            p = g_f / np.sum(g_f)
             for i in range(breed_n):
-                f = randint(0, self.max_group - 1)
-                m = randint(0, self.max_group - 1)
-                self.groups.extend(self.breeds(self.groups[f].copy(), self.groups[m].copy()))
+                f = np.random.choice(list(self.group_dict.values()), p=p.ravel())
+                m = np.random.choice(list(self.group_dict.values()), p=p.ravel())
+                self.groups.extend(self.breeds(self.groups[int(f)].copy(), self.groups[int(m)].copy()))
 
 
             # 淘汰
@@ -202,9 +199,9 @@ class Genetic_Algorithm:
                 self.draw_image(self.groups[0], cur)
                 break
 
-if __name__=='__main__':
-    path = input("输入路径:")
-    savename = input("输入保存文件名:")
-    groups = int(input("输入族群数量:"))
-    GA = Genetic_Algorithm(path, savename, 5, groups, 50, 520 * 365)
-    GA.fit()
+path = input("输入路径:")
+savename = input("输入保存文件名:")
+groups = int(input("输入族群数目:"))
+GA = Genetic_Algorithm(path, savename, 5, groups, 50, 100000000)
+GA.fit()
+
