@@ -53,6 +53,14 @@ class Genetic_Algorithm:
         return newIm1
 
     def getSimilar(self, g) -> float:
+        # array = np.ndarray((self.orignal_img.shape[0], self.orignal_img.shape[1], self.orignal_img.shape[2]), np.uint8)
+        # array[:, :, 0] = 255
+        # array[:, :, 1] = 255
+        # array[:, :, 2] = 255
+        # newIm1 = Image.fromarray(array)
+        # draw = ImageDraw.Draw(newIm1)
+        # for d in g:
+        #     draw.polygon((d[0][0], d[0][1], d[1][0], d[1][1], d[2][0], d[2][1]), d[3])
         newIm1 = self.to_image(g)
         ssim = structural_similarity(np.array(self.orignal_img), np.array(newIm1), multichannel=True)
         return ssim
@@ -158,7 +166,7 @@ class Genetic_Algorithm:
         return [new1, new2, new3, new4, new5, new6, new7, new8, new9, new10]
 
     def eliminated(self, groups):
-        self.group_dict = dict()
+        self.group_dict.clear()
         # print(0, self.getSimilar(groups[0]))
         for gp in range(len(groups)):
             self.group_dict[gp] = self.getSimilar(groups[gp])
@@ -182,10 +190,10 @@ class Genetic_Algorithm:
             g_f = np.abs(np.array(list(self.group_dict.values())))
             p = g_f / np.sum(g_f)
             for i in range(breed_n):
-                f = np.random.choice(list(self.group_dict.values()), p=p.ravel())
-                m = np.random.choice(list(self.group_dict.values()), p=p.ravel())
-                self.groups.extend(self.breeds(self.groups[int(f)].copy(), self.groups[int(m)].copy()))
-
+                f = np.random.choice(list(self.group_dict.keys()), p=p.ravel())
+                m = np.random.choice(list(self.group_dict.keys()), p=p.ravel())
+                if f < self.max_group and m < self.max_group:
+                    self.groups.extend(self.breeds(self.groups[int(f)].copy(), self.groups[int(m)].copy()))
 
             # 淘汰
             self.groups, acc = self.eliminated(self.groups.copy())
@@ -196,8 +204,8 @@ class Genetic_Algorithm:
                 self.draw_image(self.groups[0], cur)
 
             if acc >= 0.95:
-                self.draw_image(self.groups[0], cur)
                 break
+        self.draw_image(self.groups[0], "End")
 
 path = input("输入路径:")
 savename = input("输入保存文件名:")
