@@ -9,3 +9,6 @@ python手动实现智能优化算法，持续不定时更新（可催更）
 
 使用差分进化算法进行函数求取最值
 代码实现详解：https://blog.csdn.net/DuLNode/article/details/123367702
+
+运用免疫遗传算法的图像拟合
+代码实现详解：https://blog.csdn.net/DuLNode/article/details/124096240
